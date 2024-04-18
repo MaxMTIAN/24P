@@ -2,33 +2,51 @@ const cards = [5, 6, 7, 8];  // 示例数字，实际可以随机生成
 const operations = ['+', '-', '*', '/'];
 let selectedCards = [];
 
-function createCardElement(number) {
+// 创建卡片元素并启用拖动
+function createCardElement(number, index) {
   const card = document.createElement('div');
   card.classList.add('card');
   card.textContent = number;
-  card.onclick = function() {
-    if (selectedCards.length < 2 && !selectedCards.includes(card)) {
-      card.style.backgroundColor = 'grey';
-      selectedCards.push(card);
-    } else {
-      card.style.backgroundColor = 'white';
-      selectedCards = selectedCards.filter(c => c !== card);
-    }
+  card.id = 'card' + index;  // 给每张卡片一个唯一的ID
+  card.draggable = true;
+  card.ondragstart = function(event) {
+    event.dataTransfer.setData("text", event.target.id);
   };
   return card;
 }
 
-cards.forEach(number => {
-  document.getElementById('card-container').appendChild(createCardElement(number));
-});
+// 设置拖动释放区域的逻辑
+function setupDropZones() {
+  const container = document.getElementById('card-container');
+  container.ondragover = function(event) {
+    event.preventDefault();  // 阻止默认行为以启用拖放
+  };
+  container.ondrop = function(event) {
+    event.preventDefault();
+    const data = event.dataTransfer.getData("text");
+    const card = document.getElementById(data);
+    const dropTarget = event.target.closest('.card');
+    if (dropTarget) {
+      let temp = document.createElement("div");  // 用作交换位置的临时节点
+      container.insertBefore(temp, card);
+      container.insertBefore(card, dropTarget);
+      container.insertBefore(dropTarget, temp);
+      container.removeChild(temp);
+    }
+  };
+}
+
+// 初始化游戏界面和逻辑
+function initGame() {
+  const cardContainer = document.getElementById('card-container');
+  cards.forEach((number, index) => {
+    cardContainer.appendChild(createCardElement(number, index));
+  });
+  setupDropZones();
+}
 
 document.getElementById('hint').onclick = function() {
-  if (selectedCards.length < 2) {
-    alert('请先选择两张卡片。');
-  } else {
-    const firstNumber = selectedCards[0].textContent;
-    const secondNumber = selectedCards[1].textContent;
-    const randomOperation = operations[Math.floor(Math.random() * operations.length)];
-    alert('考虑将 ' + firstNumber + ' 和 ' + secondNumber + ' 使用 ' + randomOperation + ' 运算。');
-  }
+  alert('考虑将两张相近的卡片用运算符结合。这只是一个基础提示，详细算法需要根据游戏进度设计。');
 };
+
+document.addEventListener('DOMContentLoaded', initGame);
