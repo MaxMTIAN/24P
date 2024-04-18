@@ -1,77 +1,90 @@
-const cards = [8, 3, 3, 2];  // 示例数字，实际可以随机生成
-const operations = ['+', '-', '*', '/'];
-let solutionSteps = [];
-let currentHintIndex = 0;
+const cards = [];
+let selectedCards = [];
+let currentOperation = '';
 
-function evalExpression(num1, num2, operator) {
-  switch (operator) {
-    case '+': return num1 + num2;
-    case '-': return num1 - num2;
-    case '*': return num1 * num2;
-    case '/': return num2 !== 0 ? num1 / num2 : Infinity;
-  }
-}
-
-function findSolution(numbers, history) {
-  if (numbers.length === 1 && Math.abs(numbers[0] - 24) < 1e-6) {
-    solutionSteps = history;
-    return true;
-  }
-
-  for (let i = 0; i < numbers.length; i++) {
-    for (let j = i + 1; j < numbers.length; j++) {
-      let num1 = numbers[i], num2 = numbers[j];
-      let remaining = numbers.slice(0, i).concat(numbers.slice(i + 1, j)).concat(numbers.slice(j + 1));
-
-      for (let op of operations) {
-        if (findSolution([evalExpression(num1, num2, op)].concat(remaining), history.concat(`${num1} ${op} ${num2} = ${evalExpression(num1, num2, op)}`))) {
-          return true;
-        }
-      }
+function generateCards() {
+    const suits = ['♠', '♥', '♣', '♦'];
+    const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    for (let i = 0; i < 4; i++) {
+        let value = values[Math.floor(Math.random() * values.length)];
+        let suit = suits[Math.floor(Math.random() * suits.length)];
+        cards.push({value, suit});
     }
-  }
-  return false;
+    displayCards();
 }
 
-function createCardElement(number) {
-  const card = document.createElement('div');
-  card.classList.add('card');
-  card.textContent = number;
-  card.draggable = true;
-  card.ondragstart = (event) => {
-    event.dataTransfer.setData("text/plain", event.target.textContent);
-  };
-  return card;
+function displayCards() {
+    const container = document.getElementById('card-container');
+    container.innerHTML = '';
+    cards.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.id = 'card' + index;
+        cardElement.setAttribute('data-value', card.value);
+        cardElement.innerHTML = `<span class="value">${card.value}</span><span class="suit">${card.suit}</span>`;
+        container.appendChild(cardElement);
+        setupDragAndDrop(cardElement);
+    });
 }
 
-function setupDropZones() {
-  const cardContainer = document.getElementById('card-container');
-  cardContainer.ondragover = (event) => {
-    event.preventDefault();
-  };
-  cardContainer.ondrop = (event) => {
-    event.preventDefault();
-    const droppedNumber = event.dataTransfer.getData("text");
-    const operator = prompt('Enter operator (+, -, *, /):');
-    const targetCard = event.target;
-    const targetNumber = targetCard.textContent;
-    const result = evalExpression(parseFloat(droppedNumber), parseFloat(targetNumber), operator);
-    targetCard.textContent = result.toFixed(2); // Show result rounded to two decimal places
-  };
+function setupDragAndDrop(card) {
+    card.draggable = true;
+    card.addEventListener('dragstart', event => {
+        event.dataTransfer.setData('text/plain', event.target.id);
+    });
+    card.addEventListener('dragover', event => {
+        event.preventDefault();
+    });
+    card.addEventListener('drop', event => {
+        event.preventDefault();
+        const draggedId = event.dataTransfer.getData('text/plain');
+        const draggedCard = document.getElementById(draggedId);
+        selectedCards = [draggedCard, card];
+        document.getElementById('operators').style.display = 'block';
+    });
 }
 
-cards.forEach(number => {
-  document.getElementById('card-container').appendChild(createCardElement(number));
-});
+function selectOperator(operator) {
+    currentOperation = operator;
+    calculateResult();
+}
 
-findSolution(cards, []);
-setupDropZones();
+function calculateResult() {
+    if (selectedCards.length === 2 && currentOperation) {
+        const value1 = parseInt(selectedCards[0].getAttribute('data-value'));
+        const value2 = parseInt(selectedCards[1].getAttribute('data-value'));
+        let result;
+        switch (currentOperation) {
+            case '+':
+                result = value1 + value2;
+                break;
+            case '-':
+                result = value1 - value2;
+                break;
+            case '*':
+                result = value1 * value2;
+                break;
+            case '/':
+                result = value1 / value2;
+                break;
+        }
+        selectedCards[1].innerHTML = `<span class="value">${result}</span><span class="suit">${selectedCards[1].querySelector('.suit').innerHTML}</span>`;
+        selectedCards[1].setAttribute('data-value', result);
+        checkForWin(result);
+        document.getElementById('operators').style.display = 'none';
+    }
+}
 
-document.getElementById('hint').onclick = function() {
-  if (currentHintIndex < solutionSteps.length) {
-    alert(solutionSteps[currentHintIndex]);
-    currentHintIndex++;
-  } else {
-    alert('已经完成所有步骤！');
-  }
-};
+function checkForWin(result) {
+    if (result === 24) {
+        document.getElementById('celebration').style.display = 'block';
+    }
+}
+
+function resetGame() {
+    cards.length = 0;  // 清空卡片数组
+    generateCards();  // 重新生成卡片
+    document.getElementById('celebration').style.display = 'none';
+}
+
+generateCards();
