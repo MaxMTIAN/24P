@@ -7,9 +7,12 @@ function createCardElement(number) {
   card.classList.add('card');
   card.textContent = number;
   card.onclick = function() {
-    if (selectedCards.length < 2) {
+    if (selectedCards.length < 2 && !selectedCards.includes(card)) {
       card.style.backgroundColor = 'grey';
-      selectedCards.push(number);
+      selectedCards.push(card);
+    } else {
+      card.style.backgroundColor = 'white';
+      selectedCards = selectedCards.filter(c => c !== card);
     }
   };
   return card;
@@ -20,5 +23,12 @@ cards.forEach(number => {
 });
 
 document.getElementById('hint').onclick = function() {
-  alert('考虑将 ' + selectedCards[0] + ' 和 ' + selectedCards[1] + ' 使用 ' + operations[Math.floor(Math.random() * operations.length)] + ' 运算。');
+  if (selectedCards.length < 2) {
+    alert('请先选择两张卡片。');
+  } else {
+    const firstNumber = selectedCards[0].textContent;
+    const secondNumber = selectedCards[1].textContent;
+    const randomOperation = operations[Math.floor(Math.random() * operations.length)];
+    alert('考虑将 ' + firstNumber + ' 和 ' + secondNumber + ' 使用 ' + randomOperation + ' 运算。');
+  }
 };
