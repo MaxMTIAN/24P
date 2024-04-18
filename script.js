@@ -1,52 +1,63 @@
-const cards = [5, 6, 7, 8];  // 示例数字，实际可以随机生成
+const cards = [8, 3, 3, 2];  // 示例数字，实际可以随机生成
 const operations = ['+', '-', '*', '/'];
 let selectedCards = [];
+let solutionSteps = [];
+let currentHintIndex = 0;
 
-// 创建卡片元素并启用拖动
-function createCardElement(number, index) {
+function evalExpression(num1, num2, operator) {
+  switch (operator) {
+    case '+': return num1 + num2;
+    case '-': return num1 - num2;
+    case '*': return num1 * num2;
+    case '/': return num1 / num2;
+  }
+}
+
+function findSolution(numbers, history) {
+  if (numbers.length === 1 && numbers[0] === 24) {
+    solutionSteps = history;
+    return true;
+  }
+  
+  for (let i = 0; i < numbers.length; i++) {
+    for (let j = i + 1; j < numbers.length; j++) {
+      let num1 = numbers[i], num2 = numbers[j];
+      let remaining = numbers.slice(0, i).concat(numbers.slice(i+1, j)).concat(numbers.slice(j+1));
+      
+      for (let op of operations) {
+        if ((op !== '/' || num2 !== 0) && findSolution([evalExpression(num1, num2, op)].concat(remaining), history.concat(`${num1} ${op} ${num2} = ${evalExpression(num1, num2, op)}`))) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function createCardElement(number) {
   const card = document.createElement('div');
   card.classList.add('card');
   card.textContent = number;
-  card.id = 'card' + index;  // 给每张卡片一个唯一的ID
-  card.draggable = true;
-  card.ondragstart = function(event) {
-    event.dataTransfer.setData("text", event.target.id);
+  card.onclick = function() {
+    if (selectedCards.length < 2) {
+      card.style.backgroundColor = 'grey';
+      selectedCards.push(number);
+    }
   };
   return card;
 }
 
-// 设置拖动释放区域的逻辑
-function setupDropZones() {
-  const container = document.getElementById('card-container');
-  container.ondragover = function(event) {
-    event.preventDefault();  // 阻止默认行为以启用拖放
-  };
-  container.ondrop = function(event) {
-    event.preventDefault();
-    const data = event.dataTransfer.getData("text");
-    const card = document.getElementById(data);
-    const dropTarget = event.target.closest('.card');
-    if (dropTarget) {
-      let temp = document.createElement("div");  // 用作交换位置的临时节点
-      container.insertBefore(temp, card);
-      container.insertBefore(card, dropTarget);
-      container.insertBefore(dropTarget, temp);
-      container.removeChild(temp);
-    }
-  };
-}
+cards.forEach(number => {
+  document.getElementById('card-container').appendChild(createCardElement(number));
+});
 
-// 初始化游戏界面和逻辑
-function initGame() {
-  const cardContainer = document.getElementById('card-container');
-  cards.forEach((number, index) => {
-    cardContainer.appendChild(createCardElement(number, index));
-  });
-  setupDropZones();
-}
+findSolution(cards, []);
 
 document.getElementById('hint').onclick = function() {
-  alert('考虑将两张相近的卡片用运算符结合。这只是一个基础提示，详细算法需要根据游戏进度设计。');
+  if (currentHintIndex < solutionSteps.length) {
+    alert(solutionSteps[currentHintIndex]);
+    currentHintIndex++;
+  } else {
+    alert('已经完成所有步骤！');
+  }
 };
-
-document.addEventListener('DOMContentLoaded', initGame);
